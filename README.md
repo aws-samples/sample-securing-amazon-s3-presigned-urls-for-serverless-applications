@@ -1,9 +1,11 @@
 # Securing S3 Presigned URLs for Serverless Applications
 Sample serverless application that demonstrates multiple techniques used to secure S3 presigned URLs, including adding a Content-MD5 checksum, expiring URLs dynamically, and generating UUIDs to replace object names.
 
-Please read (the full blog post)[https://aws-future-compute-blog-post-url.com].
+Please read the [full blog post](https://aws-future-compute-blog-post-url.com).
 
 ## Architecture
+
+This sample application focuses first on how to protect against arbitrary file uploads using S3's MD5 checksum feature:
 
 ![Architecture](architecture-diagram.png)
 
