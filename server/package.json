@@ -1,0 +1,26 @@
+{
+  "name": "s3-presigned-url-server",
+  "version": "1.0.0",
+  "description": "Simple NodeJS Lambda function to use S3 presigned URLs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aws-samples/sample-securing-amazon-s3-presigned-urls-for-serverless-applications.git"
+  },
+  "keywords": [
+    "s3",
+    "aws"
+  ],
+  "license": "mit",
+  "bugs": {
+    "url": "https://github.com/aws-samples/sample-securing-amazon-s3-presigned-urls-for-serverless-applications/issues"
+  },
+  "homepage": "https://github.com/aws-samples/sample-securing-amazon-s3-presigned-urls-for-serverless-applications#readme",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.654.0",
+    "@aws-sdk/s3-request-presigner": "^3.654.0"
+  }
+}
