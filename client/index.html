@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload a File using an S3 presigned URL</title>
     <!-- Include SparkMD5 library for computing MD5 hash: https://www.npmjs.com/package/spark-md5 -->
-    <script src="spark-md5.js" type="text/javascript"></script>
+    <script src="node_modules/spark-md5/spark-md5.js" type="text/javascript"></script>
 </head>
 
 <body>
@@ -149,10 +149,13 @@
                 try {
                     const clientNetwork = detectNetwork();
                     console.debug("clientNetwork", clientNetwork);
+
                     const base64MD5 = await calculateMD5Base64(file);
                     console.debug("base64MD5", base64MD5);
+
                     const presignedUrl = await getPresignedUrl(apigUrl, file, base64MD5, clientNetwork);
                     console.debug("presignedUrl", presignedUrl);
+
                     await uploadFileToS3(presignedUrl, file, base64MD5);
                 } catch (error) {
                     console.error('Error during file upload process:', error);

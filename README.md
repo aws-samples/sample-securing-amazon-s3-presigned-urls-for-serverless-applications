@@ -5,9 +5,9 @@ Please read the [full blog post](https://aws-future-compute-blog-post-url.com).
 
 ## Architecture
 
-This sample application focuses first on how to protect against arbitrary file uploads using S3's MD5 checksum feature:
+This sample application illustrates how to protect against arbitrary file uploads using S3's MD5 checksum feature, as well as several other methods for securing S3 presigned URLs:
 
-![Architecture](architecture-diagram.png)
+![Architecture](./ARCHITECTURE.png)
 
 ## Steps to Use
 
@@ -15,20 +15,82 @@ To test this sample application, you will need a web browser (see /client) and t
 
 ### Server Setup
 1. Create an S3 bucket.  Your S3 bucket can remain private with block all public access set to ON.
-2. Define and [configure cross-origin resource sharing (CORS)](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enabling-cors-examples.html?icmpid=docs_amazons3_console) for the bucket as appropriate.
-3. Create a Lambda function.
-4. [Add a Trigger](https://docs.aws.amazon.com/lambda/latest/dg/lambda-services.html) for API Gateway, using the "Create a new API" option.  Select Security as appropriate.
-5. Save the public URL for your API Gateway, as you will need it to configure the client.
-6. In the Configuration tab of your Lambda function, [define an environment variable](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html) as Key=BUCKET_NAME, Value=yourbucketname.
-7. In the Permissions tab of your Lambda function, select the Execution role name.  See [Managing permissions in AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/lambda-permissions.html).
-8. Modify the execution role in the Identity and Access Management (IAM) console to add S3 bucket access as appropriate. See [Download and upload objects with presigned URLs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html).
-9. Upload the sample code from this repository's /server directory in the file index.mjs to the Lambda function.
+2. Navigate to the bucket you created, select the 'Permissions' tab and add the following policy to Cross-origin resource sharing (CORS):
+
+```json
+[
+    {
+        "AllowedHeaders": [
+            "*"
+        ],
+        "AllowedMethods": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE"
+        ],
+        "AllowedOrigins": [
+            "*"
+        ],
+        "ExposeHeaders": [
+            "ETag"
+        ],
+        "MaxAgeSeconds": 3000
+    }
+]
+```
+
+This policy is for this proof of concept. Learn more by reading about [Configuring cross-origin resource sharing (CORS)](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enabling-cors-examples.html?icmpid=docs_amazons3_console).
+
+3. Create a Lambda function: select 'Author from scratch', name your function, and choose the Node.js 22.x runtime.
+4. In the Lambda console, select the [add Trigger](https://docs.aws.amazon.com/lambda/latest/dg/lambda-services.html) button, specifying a source of API Gateway, using the 'Create a new API' option.  Specify 'REST API' as the type and for this proof of concept, choose 'Open' for Security. Press the Add button.
+5. You should be returned to the Lambda console for your function.  Select the API Gateway icon, and the API Gateway name and endpoint should display under the 'Configuration' tab of the console.  
+6. Select the name of the API Gateway to open a new browser tab in the API Gateway console.  Select the path above 'ANY' on the left side menu under Resources (the path should correspond to the name of your Lambda function).  Select 'Enable CORS' then 'Save' with the defaults as-is.
+7. The API Gateway console should now show a new 'OPTIONS' Method execution under 'ANY'.
+8. Do not forget to Deploy your API!  Select 'Deploy API' and use the default stage.  Select 'Deploy'.
+9. Return to the Lambda console. Save the public URL for your API Gateway shown as 'API endpoint', as you will need it to configure the client.  You can test that the API Gateway and Lambda function are integrated by loading the API endpoint URL in a different browser tab.  You should see the message, "Hello from Lambda!"
+10. In the Configuration tab of your Lambda function, select 'Environment variables' from the side menu.  Select 'Edit' then 'Add environment variable' to [define an environment variable](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html) as Key=BUCKET_NAME, Value=yourbucketname.
+11. Still in the Configuration tab, select 'Permissions' from the side menu. Select the Execution role name to open the execution role in a separate browser tab.  See [Managing permissions in AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/lambda-permissions.html).
+12. Modify the execution role in the Identity and Access Management (IAM) console to add the following new permission policy.  You can do so by selecting 'Add permissions' then 'Create inline policy' from the dropdown menu.  Switch from Visual to JSON editor, then copy the policy below and completely replace what is in the policy editor in the console:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": "s3:PutObject",
+            "Resource": "arn:aws:s3:::yourbucketname/*"
+        }
+    ]
+}
+```
+13. Select 'Next', then provide a Policy name, then 'Create policy'.  Because the Lambda function is generating the S3 presigned URL, this means that the URLs this function generates will inherit the function's access rights. This restricts anyone using the S3 presigned URLs generated by this function to only be able to add new objects to this specific bucket. See [Download and upload objects with presigned URLs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html) for additional information.
+14. Navigate back to the Lambda console and select the 'Code' tab.
+15. Copy the sample code from this repository's /server directory in the file index.mjs to the Lambda function's index.mjs in the console.  Your code should completely replace the existing handler.
+16. Publish the updated code to your Lambda function by pressing the Deploy button.
+17. You should see a message informing you, "Successfully updated the function..."
+
+Congratulations!  Your Lambda function (the server) is ready to start generating S3 presigned URLs for your specific bucket.
+
+Let's setup the client now.
 
 ### Client Setup
+In this section, we will instrument your client files to use the correct API Gateway:
 
-Open the index.html found within the /client directory and modify the form action to the public URL for your API Gateway from step 5 above.
+1. Navigate to the client directory using the command line: `cd client/`
+2. Install the spark-md5 library as a dependency by running: `npm install`
+3. You should see a new /node_modules directory inside the /client directory you are working within.
+4. Open the index.html found within the /client directory and modify line 15 containing the form action to the public URL for your API Gateway from step 5 above:
+```html
+<form action="https://yourapigateway.execute-api.yourregion.amazonaws.com/default/yourresource">
+```
+5. Open the index.html file in a local web browser.
 
 You may now upload a file to test your sample application.  Your file will appear within your private S3 bucket.
+
+If you encounter an issue, open your browser's console and enable Debug-level messages to aid in your troubleshooting.
 
 ## Contributing
 
